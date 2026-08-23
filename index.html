@@ -76,10 +76,10 @@ let role = null, endAt = null, timer = null, autoSaved = false;
 
 function now(){ return new Date(); }
 function getSlot(d=now()){
-  const h=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
-  if(h>=MORNING_START && h<MORNING_END) return {role:"Best Friend", end: new Date(d.getFullYear(),d.getMonth(),d.getDate(),MORNING_END,0,0)};
-  if(h>=EVENING_START && h<EVENING_END) return {role:"You", end: new Date(d.getFullYear(),d.getMonth(),d.getDate(),EVENING_END,0,0)};
-  return null;
+  return {
+    role:"You",
+    end: new Date(d.getTime() + 24*60*60*1000)
+  };
 }
 function fmt(d){return new Intl.DateTimeFormat("en-IN",{dateStyle:"medium",timeStyle:"medium",hour12:true}).format(d)}
 function entries(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]}}
