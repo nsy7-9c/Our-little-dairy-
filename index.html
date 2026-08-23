@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fff7fb">
+<title>Our Little Diary</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:linear-gradient(160deg,#fff7fb,#f4f0ff);color:#332b36;min-height:100vh}
+.app{width:100%;max-width:520px;margin:auto;padding:18px 15px 35px}
+.card{background:#ffffffd9;border:1px solid #ffffff;box-shadow:0 12px 35px #6b52651c;border-radius:24px;padding:20px;margin-top:14px;backdrop-filter:blur(10px)}
+h1{font-size:27px;margin:6px 0 4px}.sub{color:#806f7c;font-size:14px}.heart{text-align:center;font-size:28px}
+.lock{text-align:center;padding:32px 18px}.lock .emoji{font-size:42px}.lock h2{margin:10px 0 6px}.lock p{line-height:1.6;color:#756975}
+label{display:block;font-size:13px;font-weight:700;margin:14px 0 7px}input,textarea{width:100%;border:1px solid #e5dce5;border-radius:15px;padding:13px;font:inherit;background:#fff;outline:none}input:focus,textarea:focus{border-color:#b78bb0;box-shadow:0 0 0 3px #b78bb018}textarea{min-height:210px;resize:vertical}
+button{width:100%;border:0;border-radius:15px;padding:13px 15px;font:inherit;font-weight:700;background:#332b36;color:#fff;margin-top:12px}button.secondary{background:#eee8ee;color:#403740}
+.timer{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#faf5f9;border-radius:15px;margin-bottom:12px}.timer strong{font-size:18px}.role{font-size:13px;color:#806f7c}
+.error{color:#a33b55;font-size:13px;margin-top:8px}.hint{font-size:12px;color:#897a86;line-height:1.5}
+.entry{padding:14px 0;border-top:1px solid #eee6ed}.entry:first-child{border-top:0}.meta{font-size:11px;color:#8b7b87;margin-bottom:7px}.entry p{white-space:pre-wrap;margin:0;line-height:1.55}
+.small{font-size:11px;color:#948793}.hidden{display:none}
+.badge{display:inline-block;background:#f1e6ef;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="heart">♡</div>
+  <h1>Our Little Diary</h1>
+  <div class="sub">A little place for two people, one day at a time.</div>
+
+  <section id="lockCard" class="card">
+    <div class="lock">
+      <div class="emoji">🔐</div>
+      <h2>Sorry dear...</h2>
+      <p id="lockMessage">It's time to think what you have to write in the right time...😇</p>
+      <div id="status"></div>
+    </div>
+  </section>
+
+  <section id="loginCard" class="card hidden">
+    <div class="badge" id="roleBadge"></div>
+    <h2>Welcome ♡</h2>
+    <p class="sub">Enter the password to open your writing time.</p>
+    <label>Password</label>
+    <input id="password" type="password" autocomplete="off" placeholder="Enter password">
+    <button id="openBtn">Open diary</button>
+    <div id="error" class="error"></div>
+    <p class="hint">Password clue: the birthday puzzle can be used to discover the current password.</p>
+  </section>
+
+  <section id="diaryCard" class="card hidden">
+    <div class="timer"><span><span class="role" id="roleText"></span><br><strong id="countdown">--:--</strong></span><span>⏳</span></div>
+    <label>Your message</label>
+    <textarea id="message" maxlength="10000" placeholder="Write whatever is in your heart..."></textarea>
+    <button id="saveBtn">Save message</button>
+    <p class="small" id="saveState"></p>
+  </section>
+
+  <section id="historyCard" class="card hidden">
+    <h2>Our entries</h2>
+    <div id="history"></div>
+  </section>
+
+  <section class="card">
+    <h3>Password puzzle 🧩</h3>
+    <p class="sub">Example: 10 Feb 2010 + 30 Jul 2009</p>
+    <p class="hint">10 + 02 + 10 + 30 + 07 + 09 = 68 → 6 = F, 8 = h → <b>Fh</b></p>
+    <p class="hint">Current password is intentionally not shown here.</p>
+  </section>
+</div>
+
+<script>
+const PASSWORD = "Da";
+const MORNING_START = 6, MORNING_END = 7; // friend
+const EVENING_START = 19, EVENING_END = 20; // you
+const KEY = "our_little_diary_entries_v1";
+let role = null, endAt = null, timer = null, autoSaved = false;
+
+function now(){ return new Date(); }
+function getSlot(d=now()){
+  const h=d.getHours()+d.getMinutes()/60+d.getSeconds()/3600;
+  if(h>=MORNING_START && h<MORNING_END) return {role:"Best Friend", end: new Date(d.getFullYear(),d.getMonth(),d.getDate(),MORNING_END,0,0)};
+  if(h>=EVENING_START && h<EVENING_END) return {role:"You", end: new Date(d.getFullYear(),d.getMonth(),d.getDate(),EVENING_END,0,0)};
+  return null;
+}
+function fmt(d){return new Intl.DateTimeFormat("en-IN",{dateStyle:"medium",timeStyle:"medium",hour12:true}).format(d)}
+function entries(){try{return JSON.parse(localStorage.getItem(KEY)||"[]")}catch{return[]}}
+function setEntries(x){localStorage.setItem(KEY,JSON.stringify(x))}
+function renderHistory(){
+  const h=document.getElementById("history"); const list=entries().slice().reverse();
+  h.innerHTML=list.length?list.map(e=>`<div class="entry"><div class="meta">${e.role} · ${fmt(new Date(e.at))}</div><p>${escapeHtml(e.text)}</p></div>`).join(""):'<p class="sub">No entries yet.</p>';
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function show(){
+  const slot=getSlot(), lock=document.getElementById("lockCard"), login=document.getElementById("loginCard"), diary=document.getElementById("diaryCard"), history=document.getElementById("historyCard");
+  document.getElementById("status").textContent=slot?`Your ${slot.role.toLowerCase()} slot is open.`:`The diary is currently closed. Morning: 6–7 AM · Evening: 7–8 PM`;
+  if(!slot){lock.classList.remove("hidden");login.classList.add("hidden");diary.classList.add("hidden");history.classList.add("hidden");return}
+  lock.classList.add("hidden"); login.classList.remove("hidden"); history.classList.add("hidden");
+  document.getElementById("roleBadge").textContent=slot.role+" · "+(slot.role==="Best Friend"?"6–7 AM":"7–8 PM");
+  endAt=slot.end;
+}
+function openDiary(){
+  if(!getSlot()) return show();
+  if(document.getElementById("password").value!==PASSWORD){document.getElementById("error").textContent="Wrong password.";return}
+  role=getSlot().role;
+  document.getElementById("error").textContent="";
+  document.getElementById("loginCard").classList.add("hidden");
+  document.getElementById("diaryCard").classList.remove("hidden");
+  document.getElementById("historyCard").classList.remove("hidden");
+  document.getElementById("roleText").textContent=role+" · "+(role==="Best Friend"?"6–7 AM":"7–8 PM");
+  const key=dayKey()+":"+role, old=entries().find(e=>e.slotKey===key);
+  document.getElementById("message").value=old?old.text:"";
+  document.getElementById("saveState").textContent=old?"This slot is already saved.":"Autosave is active.";
+  renderHistory(); startTimer();
+}
+function dayKey(d=now()){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function save(auto=false){
+  if(!role||!getSlot()) return;
+  const text=document.getElementById("message").value;
+  const list=entries(), key=dayKey()+":"+role, i=list.findIndex(e=>e.slotKey===key);
+  const item={slotKey:key,role,text,at:new Date().toISOString()};
+  if(i>=0) list[i]=item; else list.push(item);
+  setEntries(list); renderHistory(); document.getElementById("saveState").textContent=auto?"Time ended — your message was automatically saved.":"Saved at "+fmt(new Date());
+}
+function startTimer(){
+  clearInterval(timer);
+  timer=setInterval(()=>{
+    const slot=getSlot();
+    if(!slot){ if(role && !autoSaved){autoSaved=true;save(true)} clearInterval(timer); show(); return; }
+    autoSaved=false;
+    const ms=Math.max(0,slot.end-new Date()), total=Math.floor(ms/1000);
+    document.getElementById("countdown").textContent=String(Math.floor(total/60)).padStart(2,"0")+":"+String(total%60).padStart(2,"0");
+  },250);
+}
+document.getElementById("openBtn").onclick=openDiary;
+document.getElementById("saveBtn").onclick=()=>save(false);
+document.getElementById("message").addEventListener("input",()=>{document.getElementById("saveState").textContent="Typing… changes will be kept when the slot ends."});
+show();
+setInterval(show,1000);
+</script>
+</body>
+</html>
