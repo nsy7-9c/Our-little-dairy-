@@ -136,5 +136,24 @@ document.getElementById("message").addEventListener("input",()=>{document.getEle
 show();
 setInterval(show,1000);
 </script>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+  import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDBVnuPlS63Fs1tokvuCsgrJtVkcWoRu-w",
+    authDomain: "our-little-diary.firebaseapp.com",
+    databaseURL: "https://our-little-diary-default-rtdb.firebaseio.com",
+    projectId: "our-little-diary",
+    storageBucket: "our-little-diary.firebasestorage.app",
+    messagingSenderId: "556015676180",
+    appId: "1:556015676180:web:d760b56ffc9e110c553001"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+</script>
+
 </body>
 </html>
